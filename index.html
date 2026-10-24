@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treasure Payments</title>
+<meta name="description" content="Every Nostr key has a treasure: the first point on its walk with 20 zeros, about a million steps out. Follow the map, send coins to the spot. Anyone can find it, only the key's owner can dig it up.">
+<meta name="theme-color" content="#ead39f">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://melvincarvalho.github.io/treasure/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Treasure Payments">
+<meta property="og:title" content="Treasure Payments: a map to every Nostr key's treasure">
+<meta property="og:description" content="Every Nostr key has a treasure: the first point on its walk with 20 zeros, about a million steps out. Follow the map, send coins to the spot. Anyone can find it, only the key's owner can dig it up.">
+<meta property="og:url" content="https://melvincarvalho.github.io/treasure/">
+<meta property="og:image" content="https://melvincarvalho.github.io/treasure/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Treasure Payments, with an example testnet address starting tb1pqqq">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Treasure Payments: a map to every Nostr key's treasure">
+<meta name="twitter:description" content="Every Nostr key has a treasure: the first point on its walk with 20 zeros, about a million steps out. Follow the map, send coins to the spot. Anyone can find it, only the key's owner can dig it up.">
+<meta name="twitter:image" content="https://melvincarvalho.github.io/treasure/og.png">
+<style>
+  :root {
+    --bg: #f7f6f2; --panel: #ffffff; --ink: #1c1b18; --muted: #6b6860; --line: #e3e0d8;
+    --accent: #b5651d; --accent-ink: #ffffff; --zero: #b5651d; --ok: #2e7d4f; --warn: #9a5b00; --err: #b3261e;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15140f; --panel: #1e1d18; --ink: #ece9e1; --muted: #9b978c; --line: #33312a;
+      --accent: #e0954f; --accent-ink: #15140f; --zero: #f0a868; --ok: #6cc48f; --warn: #e5b45a; --err: #f08178;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lede { color: var(--muted); margin: 0 0 28px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 320px; min-width: 0; padding: 10px 12px; font: 14px var(--mono); color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .err { color: var(--err); }
+  progress { width: 100%; height: 8px; margin-top: 16px; accent-color: var(--accent); }
+  .result { display: none; }
+  .depth { font-size: 40px; font-weight: 700; line-height: 1; }
+  .depth small { font-size: 16px; font-weight: 500; color: var(--muted); }
+  .field { margin-top: 18px; }
+  .field .k { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .field .v { font: 14px var(--mono); word-break: break-all; padding: 8px 10px; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; }
+  .zero { color: var(--zero); font-weight: 700; }
+  .copy { font-size: 12px; padding: 2px 8px; font-weight: 500; }
+  .bal { font-size: 14px; margin-top: 6px; color: var(--muted); }
+  .bal a { color: var(--accent); }
+  .note { font-size: 14px; color: var(--muted); }
+  .note strong { color: var(--warn); }
+  code { font: 13px var(--mono); }
+  nav { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid var(--line); }
+  nav .in { max-width: 720px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; gap: 4px; height: 52px; }
+  nav .brand { font-weight: 700; margin-right: auto; color: var(--ink); text-decoration: none; }
+  nav .brand span { color: var(--zero); font-family: var(--mono); }
+  nav a.tab { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 15px; padding: 6px 12px; border-radius: 8px; }
+  nav a.tab:hover { color: var(--ink); }
+  nav .snd { font-size: 16px; padding: 4px 8px; margin-left: 4px; border: 1px solid transparent; background: none; }
+  nav .snd:hover { border-color: var(--line); }
+  nav a.tab[aria-current="page"] { color: var(--ink); background: var(--panel); border: 1px solid var(--line); }
+  [data-view][hidden] { display: none; }
+  .doc h2 { font-size: 20px; margin: 0 0 8px; }
+  .doc p, .doc li { color: var(--ink); }
+  .doc p { margin: 0 0 12px; }
+  .doc p:last-child { margin-bottom: 0; }
+  .doc ul { margin: 0 0 12px; padding-left: 20px; }
+  .doc .math { font: 14px var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; overflow-x: auto; white-space: pre; }
+  .doc table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 0 0 12px; }
+  .doc th, .doc td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .doc th { color: var(--muted); font-weight: 600; }
+  .doc td.n { font-variant-numeric: tabular-nums; }
+  .doc a { color: var(--accent); }
+  .map { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 16px; box-shadow: 0 6px 24px rgba(60, 40, 10, .12); }
+  .map svg { display: block; width: 100%; height: auto; }
+  .cta { text-align: center; }
+  .keyhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .keyhead label { margin: 0; }
+  .row.tight button { font-size: 14px; padding: 6px 12px; }
+  .key input[type=text] { width: 100%; }
+  button.big { font-size: 20px; padding: 16px 36px; border-radius: 12px; width: 100%; max-width: 360px;
+    box-shadow: 0 4px 0 #7d4310; transition: transform .08s, box-shadow .08s; }
+  button.big:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #7d4310; }
+  .cta .hint { margin-top: 12px; }
+  .after { margin-top: 12px; }
+  .stats { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .stats b { color: var(--ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+  .chip { font: 12px var(--mono); font-weight: 700; padding: 3px 8px; border-radius: 999px; color: #fff; }
+  .badge { display: inline-block; vertical-align: middle; font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 999px; color: #fff; margin-left: 6px; }
+  .t-modest { background: #7d7a70; } .t-fair { background: #2e7d4f; } .t-fine { background: #2563a8; }
+  .t-rare { background: #7b3fb5; } .t-legendary { background: linear-gradient(90deg, #c8901a, #f0c040, #c8901a); color: #3b2814; }
+  .pb { margin: 10px 0 0; font-weight: 700; color: var(--accent); }
+  .goal { margin: 8px 0 0; font-size: 14px; }
+  .more { margin-top: 18px; }
+  .more summary, .own summary { cursor: pointer; font-weight: 600; }
+  .own summary { color: var(--ink); }
+  .map { position: relative; }
+  .bit { position: absolute; width: 8px; height: 8px; border-radius: 2px; pointer-events: none;
+    animation: pop 1.3s cubic-bezier(.2,.7,.3,1) forwards; }
+  @keyframes pop { 0% { transform: translate(0,0) rotate(0); opacity: 1 } 100% { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0 } }
+  @media (prefers-reduced-motion: reduce) { .bit { display: none; } button.big { transition: none; } }
+  .walk { display: flex; gap: 6px; flex-wrap: wrap; font: 13px var(--mono); margin: 0 0 12px; }
+  .walk span { padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+  .walk span.hit { border-color: var(--zero); color: var(--zero); font-weight: 700; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="in">
+    <a class="brand" href="#find"><span>✗</span> Treasure Payments</a>
+    <a class="tab" href="#find" data-tab="find">Map</a>
+    <a class="tab" href="#how" data-tab="how">How it works</a>
+    <button class="snd" id="snd" type="button" aria-pressed="true" title="Sound">🔊</button>
+  </div>
+</nav>
+<main data-view="find">
+  <h1>Treasure Payments</h1>
+  <p class="lede">Every Nostr key has a treasure: walk from the key until you hit a point with 20 zeros. Dig, and see how far you walk and how deep it goes.</p>
+
+  <div class="map hero" id="map" role="img" aria-label="An unexplored treasure map"></div>
+
+  <section class="panel cta">
+    <button id="dig" class="primary big" type="button">Dig for treasure</button>
+    <p class="hint" id="status">Walks until it finds 20+ zeros, about a million steps. Runs in your browser in a few seconds.</p>
+    <div class="after" id="after" hidden>
+      <button id="share" type="button">Copy share text</button>
+    </div>
+    <div class="stats" id="stats" hidden></div>
+  </section>
+
+  <section class="panel key">
+    <div class="keyhead">
+      <label for="pk">Your key</label>
+      <div class="row tight">
+        <button id="random" type="button">New random key</button>
+        <button id="nip07" type="button">Use extension</button>
+      </div>
+    </div>
+    <input type="text" id="pk" placeholder="64-char hex pubkey (npub works too)" autocomplete="off" spellcheck="false">
+    <p class="hint" id="keynote">A random key made in your browser. Paste any pubkey over it to see that key's treasure.</p>
+    <div class="field" id="keySecret" hidden>
+      <div class="k">Private key (hex)</div>
+      <div class="v secret" id="keyNsec"></div>
+    </div>
+  </section>
+
+  <section class="panel result" id="result">
+    <div class="depth"><span id="depth"></span> <small>zeros</small> <span class="badge" id="tier"></span></div>
+    <p class="pb" id="pb" hidden>New personal best!</p>
+    <p class="hint" id="luck"></p>
+    <p class="goal" id="goal"></p>
+
+    <div class="field">
+      <div class="k">Treasure address (testnet4)</div>
+      <div class="v" id="tb"></div>
+      <div class="bal" id="tbBal"></div>
+    </div>
+
+    <div id="secrets" hidden>
+      <div class="field">
+        <div class="k">Treasure private key (hex) · spends from the chest</div>
+        <div class="v secret" id="spotNsec"></div>
+      </div>
+      <div class="field">
+        <div class="k">Private key (hex)</div>
+        <div class="v secret" id="nsec"></div>
+      </div>
+      <p class="hint">This page made this key just now and keeps it only in this tab. It's for testnet fun: anyone who sees these keys can spend from the chest. Copy them if you want to keep this treasure.</p>
+    </div>
+
+    <details class="more">
+      <summary>More details</summary>
+      <div class="field">
+        <div class="k">Mainnet address</div>
+        <div class="v" id="bc"></div>
+      </div>
+      <div class="field">
+        <div class="k">Treasure pubkey (hex)</div>
+        <div class="v" id="spotHex"></div>
+      </div>
+      <div class="field">
+        <div class="k">Proof</div>
+        <div class="v" id="proof"></div>
+      </div>
+    </details>
+  </section>
+
+  <section class="panel note">
+    <p><strong>Testnet first.</strong> Ordinary wallets won't recognise these addresses, and there is no spending tool yet. Anyone can find a key's spot from its pubkey, so it is public. <a href="#how" style="color:var(--accent)">How it works →</a></p>
+  </section>
+</main>
+
+<main data-view="how" class="doc" hidden>
+  <h1>How it works</h1>
+  <p class="lede">A treasure hunt where every key already has its treasure buried, everyone has the same map, and only the key's owner can dig it up.</p>
+
+  <section class="panel">
+    <h2>1. Every key has a walk</h2>
+    <p>A Nostr public key is a point <code>P</code> on the secp256k1 curve. Add the curve's generator point <code>G</code> to it, again and again, and you get a fixed sequence of new points:</p>
+    <div class="walk"><span>P</span><span>P+G</span><span>P+2G</span><span>P+3G</span><span>…</span><span class="hit">P+965551G</span><span>…</span><span>P+2²⁰G</span></div>
+    <p>Each step is one point addition, so anyone holding just your pubkey can walk it. No private key is involved and nothing has to be published first. The walk is the same for everyone who looks.</p>
+  </section>
+
+  <section class="panel">
+    <h2>2. Some points are deeper than others</h2>
+    <p>Each point has an x-coordinate, a 256-bit number. Its <em>depth</em> is how many zero bits it starts with. Depth behaves like a coin toss: about half of all points have at least one leading zero, a quarter have two, and only one in a million has twenty.</p>
+    <table>
+      <tr><th>depth</th><th>how often</th><th>hex starts</th><th>address starts</th></tr>
+      <tr><td class="n">8</td><td class="n">1 in 256</td><td><code>00…</code></td><td><code>tb1pq…</code></td></tr>
+      <tr><td class="n">16</td><td class="n">1 in 65,536</td><td><code>0000…</code></td><td><code>tb1pqqq…</code></td></tr>
+      <tr><td class="n">20</td><td class="n">1 in ~1 million</td><td><code>00000…</code></td><td><code>tb1pqqqq…</code></td></tr>
+      <tr><td class="n">32</td><td class="n">1 in ~4 billion</td><td><code>00000000…</code></td><td><code>tb1pqqqqqq…</code></td></tr>
+    </table>
+    <p>In an address, every <code>q</code> after <code>tb1p</code> is five zero bits. In hex, every <code>0</code> is four.</p>
+  </section>
+
+  <section class="panel">
+    <h2>3. Your spot is the first point with 20 zeros</h2>
+    <p>Walk from P, one step at a time, until you reach a point whose x-coordinate starts with at least 20 zero bits. That point is your treasure spot. Every treasure is 20 zeros or deeper. What varies is how far you walk: about a million steps on average, sometimes only a few thousand, occasionally several million. The walker on the map moves at the real pace of the search.</p>
+    <div class="math">P     = lift_x(pubkey)        even-y point, as in BIP340
+spot  = P + i·G               the first i with 20+ leading zero bits
+proof = pubkey,20,i</div>
+    <p>Sometimes the treasure overshoots 20, and each extra zero is half as likely:</p>
+    <table>
+      <tr><th>treasure depth</th><th>share of treasures</th><th></th></tr>
+      <tr><td class="n">20</td><td class="n">1 in 2</td><td>a fair find</td></tr>
+      <tr><td class="n">21</td><td class="n">1 in 4</td><td>a fine find</td></tr>
+      <tr><td class="n">22–24</td><td class="n">~1 in 5</td><td>a rare find</td></tr>
+      <tr><td class="n">25 or more</td><td class="n">1 in 32</td><td>a legendary find</td></tr>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>4. Anyone can find it, only you can spend it</h2>
+    <p>The private key for <code>P + i·G</code> is simply your private key plus <code>i</code>. The step number <code>i</code> is public, but it's useless without your private key. So anyone can work out where your treasure is, send testnet coins there for fun, or show it on a leaderboard, and only you can open it. Coins sent to someone's spot are a <em>treasure payment</em>: no invoice, no address to ask for, just their pubkey and a walk.</p>
+    <div class="math">spot secret = privkey + i     (mod n, negated if needed for even y)</div>
+  </section>
+
+  <section class="panel">
+    <h2>5. Addresses with visible zeros</h2>
+    <p>The spot becomes a taproot address by using its x-coordinate directly as the output key. Normal wallets first add a hidden tweak (BIP86), which would scramble the zeros; skipping it keeps them visible, so the address itself starts <code>tb1pqqqq…</code>. The cost is that ordinary wallets won't show or spend these coins; a dedicated sweep tool will.</p>
+  </section>
+
+  <section class="panel">
+    <h2>6. Checking a spot</h2>
+    <p>Given a proof <code>pubkey,20,i</code>, anyone can confirm the spot with one multiplication and one addition: compute <code>P + i·G</code> and count its zeros. Confirming it's the <em>first</em> such point means walking all the steps before it, which is exactly what this page does in a few seconds.</p>
+  </section>
+
+  <section class="panel">
+    <h2>7. Things to know</h2>
+    <ul>
+      <li><strong>It's public.</strong> Your spot is linked to your pubkey by design. It's a public tip jar, not a private address.</li>
+      <li><strong>Guard the spot key like your private key.</strong> If <code>privkey + i</code> ever leaks, anyone can subtract the public <code>i</code> and recover your main private key.</li>
+      <li><strong>Testnet first.</strong> Mainnet addresses are shown as a curiosity. Don't send real coins until there's a tool to spend them.</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>8. Related ideas</h2>
+    <table>
+      <tr><th>idea</th><th>what it shares</th><th>how it differs</th></tr>
+      <tr><td><a href="https://en.bitcoin.it/wiki/Split-key_vanity_address" target="_blank" rel="noopener">Split-key vanity</a></td><td>A searcher finds an offset for someone else's public key</td><td>A one-off private service, not a public name everyone can compute</td></tr>
+      <tr><td><a href="https://github.com/nostr-protocol/nips/blob/master/13.md" target="_blank" rel="noopener">NIP-13</a></td><td>Leading zero bits as proof of work</td><td>Grinds event IDs, not keys</td></tr>
+      <tr><td><a href="https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki" target="_blank" rel="noopener">Silent payments</a></td><td>Pay to your key plus a tweak</td><td>The tweak is secret, so payments are private and unlinkable; here it's public on purpose</td></tr>
+    </table>
+  </section>
+</main>
+
+<script type="module">
+import { npubDecode, taprootAddress, randomSecret, pubkeyOf, spotSecret } from './spot.js'
+
+const BITS = 20
+const $ = id => document.getElementById(id)
+const pk = $('pk'); const status = $('status')
+let worker
+
+function parseKey (s) {
+  s = s.trim()
+  if (/^npub1/i.test(s)) return npubDecode(s)
+  if (/^[0-9a-f]{64}$/i.test(s)) return s.toLowerCase()
+  throw new Error('Enter a 64-character hex pubkey (or an npub).')
+}
+
+function say (msg, isErr) { status.textContent = msg; status.className = 'hint' + (isErr ? ' err' : '') }
+
+// Highlight the leading zero characters of an address or hex string.
+function showZeros (el, text, zeroChar, skip = 0) {
+  let end = skip
+  while (end < text.length && text[end] === zeroChar) end++
+  el.replaceChildren(text.slice(0, skip), Object.assign(document.createElement('span'), { className: 'zero', textContent: text.slice(skip, end) }), text.slice(end))
+}
+
+function addCopy (id) {
+  const k = $(id).previousElementSibling
+  if (k.querySelector('.copy')) return
+  const b = Object.assign(document.createElement('button'), { className: 'copy', type: 'button', textContent: 'Copy' })
+  b.onclick = async () => { try { await navigator.clipboard.writeText($(id).dataset.value || $(id).textContent); b.textContent = 'Copied' } catch { b.textContent = 'Copy failed' } setTimeout(() => { b.textContent = 'Copy' }, 1200) }
+  k.append(b)
+}
+
+// Keys are shown in full: this is a testnet demo.
+function showSecret (id, value) {
+  $(id).textContent = value
+  addCopy(id)
+}
+
+// A key made by the Random button; forgotten as soon as the input is edited.
+let throwaway = null
+pk.addEventListener('input', () => { throwaway = null; keyChanged() })
+
+async function balance (addr) {
+  const el = $('tbBal')
+  const link = `https://mempool.space/testnet4/address/${addr}`
+  el.innerHTML = ''
+  el.append('Checking balance… ')
+  try {
+    const r = await fetch(`https://mempool.space/testnet4/api/address/${addr}`)
+    if (!r.ok) throw new Error(r.status)
+    const { chain_stats: c, mempool_stats: m } = await r.json()
+    const sats = c.funded_txo_sum - c.spent_txo_sum
+    const pending = m.funded_txo_sum - m.spent_txo_sum
+    el.textContent = `${sats.toLocaleString()} sats confirmed` + (pending ? `, ${pending.toLocaleString()} pending` : '') + ` · ${c.tx_count + m.tx_count} txs · `
+  } catch {
+    el.textContent = 'Balance unavailable · '
+  }
+  el.append(Object.assign(document.createElement('a'), { href: link, target: '_blank', rel: 'noopener', textContent: 'view on mempool.space' }))
+}
+
+// Treasure map: a trail from P through each landmark (deepest-so-far point) to the treasure.
+// Steps run left to right on a log scale; the trail's wiggle is seeded by the pubkey.
+// The layout is built landmark by landmark, so a partial walk draws exactly the same
+// trail as the finished one, just shorter. head = log2 of the steps walked so far.
+const W = 640; const H = 380; const x0 = 56; const x1 = 584; const yTop = 100; const yBot = 290
+const ink = '#4a3520'; const faint = '#8a6e4b'; const red = '#b3261e'
+// the map spans 1 … 2^AX steps, widening if a walk goes past the edge
+let AX = 22
+const Xs = l => x0 + (x1 - x0) * l / AX
+const stepsLabel = l => { const v = 2 ** l; return v >= 1e6 ? `${Math.round(v / 2 ** 20)}M` : v >= 1e3 ? `${Math.round(v / 1024)}k` : `${v}` }
+// A small chest sitting on a painted X, with twinkling gold. Origin = the spot.
+const sparkle = (x, y, r, delay) => `<path d="M${x},${y - r} L${x + r * 0.3},${y - r * 0.3} L${x + r},${y} L${x + r * 0.3},${y + r * 0.3} L${x},${y + r} L${x - r * 0.3},${y + r * 0.3} L${x - r},${y} L${x - r * 0.3},${y - r * 0.3} Z" fill="#f7d774"><animate attributeName="opacity" values="0;1;0" dur="1.6s" begin="${delay}s" repeatCount="indefinite"/></path>`
+const chest = `
+  <g stroke="${red}" stroke-width="4" stroke-linecap="round"><line x1="-13" y1="4" x2="13" y2="22"/><line x1="13" y1="4" x2="-13" y2="22"/></g>
+  <g transform="scale(1.3) translate(0,-6)" stroke="#3b2814" stroke-width="1.3" stroke-linejoin="round">
+    <path d="M-13,-12 L-15,-26 Q0,-33 15,-26 L13,-12 Z" fill="#9a6431"/>
+    <ellipse cx="0" cy="-12" rx="13" ry="3.5" fill="#f2c94c"/>
+    <circle cx="-6" cy="-14" r="2.6" fill="#f7d774"/><circle cx="1" cy="-15.5" r="2.8" fill="#f7d774"/><circle cx="7" cy="-13.5" r="2.4" fill="#f7d774"/>
+    <rect x="-15" y="-12" width="30" height="18" rx="2" fill="#7a4a22"/>
+    <rect x="-15" y="-12" width="30" height="3.5" fill="#d9a520"/>
+    <rect x="-10" y="-12" width="3" height="18" fill="#d9a520" stroke-width="1"/>
+    <rect x="7" y="-12" width="3" height="18" fill="#d9a520" stroke-width="1"/>
+    <rect x="-3.5" y="-9" width="7" height="8" rx="1" fill="#f2c94c"/>
+    <circle cx="0" cy="-5" r="1.2" fill="#3b2814" stroke="none"/>
+  </g>
+  ${sparkle(-22, -40, 5, 0)}${sparkle(21, -44, 4, 0.5)}${sparkle(4, -52, 3.5, 1)}`
+// A treasure has >= BITS zeros; each extra zero halves the odds: 1 in 2^(d-BITS)
+const oneIn = d => 2 ** (d - BITS)
+// Share of walks that find their treasure within n steps
+const within = n => 1 - Math.exp(-n / 2 ** BITS)
+const pct = p => p < 0.01 ? 'under 1%' : p > 0.99 ? 'over 99%' : `${Math.round(p * 100)}%`
+// Loot-style tiers; min is the depth where each starts
+const TIERS = [{ min: 0, name: 'fair' }, { min: 21, name: 'fine' }, { min: 22, name: 'rare' }, { min: 25, name: 'legendary' }]
+const tierOf = d => TIERS.findLast(t => d >= t.min)
+const nextTier = d => TIERS.find(t => t.min > d)
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
+
+function layout (hex, records) {
+  let seed = parseInt(hex.slice(0, 8), 16)
+  const rand = () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+  const clampY = y => Math.min(yBot, Math.max(yTop, y))
+  const marks = []; const pts = []; const lastLabel = { '-1': -Infinity, 1: -Infinity }
+  for (const r of records) {
+    const prev = marks.at(-1)
+    const x = prev ? Xs(Math.log2(r.i)) : x0
+    // landmarks drift up or down by an amount that shrinks when they're close together
+    const y = prev ? clampY(prev.y + (rand() - 0.5) * Math.min(150, 10 + (x - prev.x) * 1.5)) : (yTop + yBot) / 2
+    if (prev) { // a gentle seeded bend or two on the way here
+      const gap = x - prev.x
+      for (const f of gap > 120 ? [1 / 3, 2 / 3] : gap > 40 ? [1 / 2] : []) pts.push([prev.x + gap * f, clampY(prev.y + (y - prev.y) * f + (rand() - 0.5) * Math.min(60, gap * 0.5))])
+    }
+    // labels go above unless that crowds the last label up there, then below
+    const side = x - lastLabel[-1] >= 22 || x - lastLabel[-1] >= x - lastLabel[1] ? -1 : 1
+    lastLabel[side] = x
+    marks.push({ ...r, x, y, side, ly: y + (side < 0 ? -10 : 18), at: pts.length })
+    pts.push([x, y])
+  }
+  return { marks, pts, seed: parseInt(hex.slice(0, 8), 16) }
+}
+
+// Catmull-Rom through the points, as cubic Béziers
+function curve (pts) {
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`
+  for (let k = 0; k < pts.length - 1; k++) {
+    const p0 = pts[k - 1] || pts[k]; const p1 = pts[k]; const p2 = pts[k + 1]; const p3 = pts[k + 2] || p2
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6]
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6]
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`
+  }
+  return d
+}
+
+// state: null for the unexplored map, else { hex, records, head, spot? }; ahead names the key to come
+function drawMap (state, ahead) {
+  const ticks = [[0, '1'], [10, '1k'], [20, '1M'], ...(AX > 20 ? [[AX, stepsLabel(AX)]] : [])]
+  let title = 'Your treasure map'
+  let sub = 'a fresh key is ready · press Dig for treasure'
+  if (ahead) { title = `The Treasure of ${esc(ahead.slice(0, 12))}…`; sub = 'unexplored · press Dig for treasure' }
+  let body = `<text x="${W / 2}" y="${(yTop + yBot) / 2 + 6}" text-anchor="middle" font-size="18" font-style="italic" fill="${faint}" opacity="0.8">here be dragons</text>
+  <circle cx="${x0}" cy="${(yTop + yBot) / 2}" r="6" fill="${ink}"/><text x="${x0 - 10}" y="${(yTop + yBot) / 2 + 4}" text-anchor="end" font-size="12" font-style="italic" fill="${ink}">P</text>`
+  let foot = ''; let sub2 = ''; let seed = 7; let label = 'An unexplored treasure map'; let at = null
+  if (state) {
+    const { hex, records, head, spot } = state
+    const L = layout(hex, records)
+    seed = L.seed
+    const seen = L.marks.filter(k => Math.log2(k.i) <= head + 1e-9)
+    const best = seen.at(-1)
+    const hx = Xs(Math.min(head, AX))
+    title = `The Treasure of ${esc(hex.slice(0, 12))}…`
+    sub = spot ? `every key walks until it finds ${BITS} zeros`
+      : `walking… ${Math.round(2 ** head).toLocaleString()} steps · best so far ${best.depth} zeros · looking for ${BITS}`
+    const trail = L.pts.slice(0, best.at + 1)
+    const fx = spot ? best.x : hx
+    body = (fx > best.x + 1 ? `<path d="M${best.x.toFixed(1)},${best.y.toFixed(1)} L${fx.toFixed(1)},${best.y.toFixed(1)}" stroke="${faint}" stroke-width="1.2" stroke-dasharray="1 5" stroke-linecap="round" fill="none"/>` : '') +
+      (trail.length > 1 ? `<path d="${curve(trail)}" fill="none" stroke="${ink}" stroke-width="2" stroke-dasharray="6 6" stroke-linecap="round"/>` : '') +
+      seen.map((k, n) => {
+        const isEnd = spot && n === seen.length - 1
+        if (isEnd) return ''
+        const crowd = spot && Math.hypot(k.x - best.x, k.ly - best.y) < 34
+        const cur = !spot && k === best
+        return `<circle cx="${k.x.toFixed(1)}" cy="${k.y.toFixed(1)}" r="${n ? 4 : 6}" fill="${n ? '#f6e7c4' : ink}" stroke="${cur ? red : ink}" stroke-width="${cur ? 2.5 : 1.5}"/>` +
+          (crowd ? '' : `<text x="${k.x.toFixed(1)}" y="${k.ly.toFixed(1)}" text-anchor="middle" font-size="11" fill="${ink}">${k.depth}</text>`)
+      }).join('') +
+      `<text x="${x0 - 10}" y="${(L.marks[0].y + 4).toFixed(1)}" text-anchor="end" font-size="12" font-style="italic" fill="${ink}">P</text>` +
+      (spot
+        ? `<g transform="translate(${best.x.toFixed(1)},${best.y.toFixed(1)})">${chest}</g>
+  <text x="${best.x.toFixed(1)}" y="${(best.y - 58 < 84 ? best.y + 40 : best.y - 58).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="bold" fill="${red}">${best.depth} zeros</text>`
+        : `<circle cx="${hx.toFixed(1)}" cy="${best.y.toFixed(1)}" r="4.5" fill="${ink}"><animate attributeName="r" values="3.5;6;3.5" dur="0.8s" repeatCount="indefinite"/></circle>`)
+    if (spot) {
+      sub2 = `found ${spot.depth} zeros at step ${spot.i.toLocaleString()} · a ${tierOf(spot.depth).name} find`
+      foot = `<text x="${W / 2}" y="${H - 22}" text-anchor="middle" font-size="12" font-family="ui-monospace, Menlo, monospace" fill="${ink}">${esc(`key ${hex.slice(0, 8)}…${hex.slice(-8)} · ${BITS}+ zeros · treasure at step ${spot.i.toLocaleString()}`)}</text>`
+      label = `Treasure map: ${seen.length - 1} landmarks from P to the spot at step ${spot.i}, ${spot.depth} zero bits deep`
+    } else label = `Treasure map, walking: best so far ${best.depth} zero bits`
+    at = { x: best.x / W, y: best.y / H }
+  }
+  $('map').innerHTML = `
+<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Georgia, 'Times New Roman', serif">
+  <defs>
+    <radialGradient id="parch" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#f6e7c4"/><stop offset="70%" stop-color="#ead39f"/><stop offset="100%" stop-color="#c9a76a"/>
+    </radialGradient>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="${seed & 255}"/><feColorMatrix values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.10 0"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#parch)"/>
+  <rect width="${W}" height="${H}" filter="url(#rough)"/>
+  <rect x="10" y="10" width="${W - 20}" height="${H - 20}" fill="none" stroke="${faint}" stroke-width="1.5" stroke-dasharray="2 4"/>
+  <text x="${W / 2}" y="44" text-anchor="middle" font-size="22" font-style="italic" fill="${ink}">${title}</text>
+  <text x="${W / 2}" y="66" text-anchor="middle" font-size="13" fill="${faint}">${sub}</text>
+  <text x="${W / 2}" y="85" text-anchor="middle" font-size="13" font-weight="bold" fill="${ink}">${sub2}</text>
+  <g transform="translate(58,66)" fill="${ink}" stroke="${ink}">
+    <circle r="22" fill="none" stroke-width="1"/>
+    <path d="M0,-28 L5,0 L0,28 L-5,0 Z" stroke="none" opacity="0.85"/>
+    <path d="M-28,0 L0,5 L28,0 L0,-5 Z" stroke="none" opacity="0.45"/>
+    <text y="-32" text-anchor="middle" font-size="12" stroke="none">N</text>
+  </g>
+  ${ticks.map(([l, t]) => `<line x1="${Xs(l)}" x2="${Xs(l)}" y1="${yBot + 22}" y2="${yBot + 28}" stroke="${faint}"/><text x="${Xs(l)}" y="${yBot + 42}" text-anchor="middle" font-size="11" fill="${faint}">${t}</text>`).join('')}
+  <line x1="${x0}" x2="${x1}" y1="${yBot + 25}" y2="${yBot + 25}" stroke="${faint}" stroke-width="0.75"/>
+  ${body}
+  ${foot}
+</svg>`
+  $('map').setAttribute('aria-label', label)
+  return at
+}
+
+// The key card: whatever is in the input is the key that gets dug.
+function keyChanged () {
+  let hex = null
+  try { hex = parseKey(pk.value) } catch {}
+  const own = hex && throwaway?.pubkey === hex
+  $('keySecret').hidden = !own
+  if (own) showSecret('keyNsec', throwaway.sk)
+  $('keynote').textContent = own ? 'A random key made in your browser just now. Paste any pubkey over it to see that key\'s treasure.'
+    : hex ? 'Only this public key is used. Its treasure is public: anyone can find it from the pubkey.' : 'Paste a 64-character hex pubkey (or an npub).'
+  if (hex !== dug) { // a different key: back to an unexplored map
+    drawMap(null, hex)
+    $('result').style.display = 'none'; $('after').hidden = true
+  }
+  dig.textContent = hex && dug === hex ? 'Dig again' : 'Dig for treasure'
+}
+
+// A fresh throwaway key, ready to dig.
+function freshKey () {
+  const sk = randomSecret()
+  throwaway = { sk, pubkey: pubkeyOf(sk) }
+  pk.value = throwaway.pubkey
+  keyChanged()
+}
+$('random').onclick = () => { if (!dig.disabled) freshKey() }
+
+$('nip07').onclick = async () => {
+  if (!window.nostr) return say('No NIP-07 extension found. Paste your pubkey instead.', true)
+  try {
+    pk.value = (await window.nostr.getPublicKey()).toLowerCase()
+    throwaway = null
+    keyChanged()
+    say('Got your pubkey from the extension. Press Dig for treasure.')
+  } catch (e) { say('The extension did not share a pubkey.', true) }
+}
+
+// Hunt log: public facts only (pubkey, depth, step), kept in this browser.
+const LOG = 'treasure-hunts-20'
+function hunts () { try { return JSON.parse(localStorage.getItem(LOG)) || [] } catch { return [] } }
+function logHunt (h) {
+  const all = hunts()
+  if (!all.some(x => x.pubkey === h.pubkey)) all.push(h)
+  try { localStorage.setItem(LOG, JSON.stringify(all.slice(-200))) } catch {}
+  return all
+}
+
+function showStats (all) {
+  const el = $('stats')
+  if (!all.length) { el.hidden = true; return }
+  const best = Math.max(...all.map(h => h.depth))
+  const count = n => all.filter(h => tierOf(h.depth).name === n).length
+  const top = ['legendary', 'rare', 'fine'].filter(n => count(n)).map(n => `${count(n)} ${n}`).join(' · ')
+  el.innerHTML = `<b>${all.length}</b> ${all.length === 1 ? 'hunt' : 'hunts'} · best <b>${best} zeros</b>${top ? ' · ' + top : ''}
+    <div class="chips">${all.slice(-24).map(h => `<span class="chip t-${tierOf(h.depth).name}" title="${tierOf(h.depth).name} find, step ${h.i.toLocaleString()}">${h.depth}</span>`).join('')}</div>`
+  el.hidden = false
+}
+
+// Count the big number up, for a little drama.
+function countUp (el, to) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = to; return }
+  const t0 = performance.now()
+  const step = () => {
+    const f = Math.min(1, (performance.now() - t0) / 700)
+    el.textContent = Math.round(to * (1 - (1 - f) ** 3))
+    if (f < 1) requestAnimationFrame(step)
+  }
+  step()
+}
+
+// Gold bursts out of the chest; rarer finds get a bigger burst.
+function celebrate (at, d) {
+  if (!at || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const map = $('map')
+  const n = { fair: 16, fine: 28, rare: 48, legendary: 90 }[tierOf(d).name]
+  const colors = ['#f7d774', '#f2c94c', '#d9a520', '#b3261e', '#fff4c2']
+  for (let k = 0; k < n; k++) {
+    const b = document.createElement('span')
+    b.className = 'bit'
+    const ang = Math.random() * Math.PI * 2; const dist = 40 + Math.random() * (60 + n * 2)
+    b.style.cssText = `left:${at.x * 100}%;top:${at.y * 100 - 4}%;background:${colors[k % colors.length]};` +
+      `--dx:${Math.cos(ang) * dist}px;--dy:${Math.sin(ang) * dist - 30}px;--r:${Math.random() * 720 - 360}deg;animation-delay:${Math.random() * 0.15}s`
+    map.append(b)
+    setTimeout(() => b.remove(), 1600)
+  }
+}
+
+let lastFind = null
+function showResult (hex, m, at) {
+  const before = hunts()
+  const prevBest = before.length ? Math.max(...before.map(h => h.depth)) : -1
+  const all = logHunt({ pubkey: hex, depth: m.depth, i: m.i, t: Date.now() })
+  const t = tierOf(m.depth); const next = nextTier(m.depth)
+  countUp($('depth'), m.depth)
+  $('tier').textContent = `${t.name} find`
+  $('tier').className = `badge t-${t.name}`
+  $('pb').hidden = !(prevBest >= 0 && m.depth > prevBest)
+  const quick = within(m.i)
+  $('luck').textContent = `Every key walks until it hits a point with ${BITS}+ zeros; that point is its treasure. ` +
+    `This walk took ${m.i.toLocaleString()} steps (${quick < 0.5 ? `quicker than ${pct(1 - quick)} of walks` : `longer than ${pct(quick)} of walks`}), ` +
+    `and the treasure has ${m.depth} zeros${m.depth > BITS ? `, which only 1 in ${oneIn(m.depth).toLocaleString()} treasures reach` : ''}. Each q after tb1p in the address is 5 zero bits.`
+  const odds = p => { const r = Math.round(1 / p); return r <= 1 ? 'Most hunts' : `About 1 in ${r.toLocaleString()} hunts` }
+  $('goal').innerHTML = next
+    ? `Next up: a <span class="badge t-${next.name}" style="margin:0;font-size:12px;padding:2px 8px">${next.name}</span> find at ${next.min}+ zeros. ${odds(1 / oneIn(next.min))} get there.`
+    : 'Legendary. Only about 1 in 32 hunts get here.'
+  const tb = taprootAddress(m.x, 'tb'); const bc = taprootAddress(m.x, 'bc')
+  showZeros($('tb'), tb, 'q', 4)
+  showZeros($('bc'), bc, 'q', 4)
+  showZeros($('spotHex'), m.x, '0')
+  $('proof').textContent = `${hex},${BITS},${m.i}`
+  for (const id of ['tb', 'bc', 'spotHex', 'proof']) addCopy(id)
+  const own = throwaway?.pubkey === hex
+  $('secrets').hidden = !own
+  if (own) {
+    showSecret('nsec', throwaway.sk)
+    showSecret('spotNsec', spotSecret(throwaway.sk, m.i))
+  }
+  $('result').style.display = 'block'
+  showStats(all)
+  celebrate(at, m.depth)
+  lastFind = { depth: m.depth, tier: t.name }
+  $('after').hidden = false
+  dig.textContent = own ? 'Hunt again with a new key' : 'Dig for treasure'
+  balance(tb)
+}
+
+$('share').onclick = async () => {
+  if (!lastFind) return
+  const url = location.origin + location.pathname
+  const text = `I dug up a ${lastFind.depth}-zero treasure on Treasure Payments: a ${lastFind.tier} find${lastFind.depth > BITS ? `, 1 in ${oneIn(lastFind.depth)} treasures go this deep` : ''}. ${url}`
+  const b = $('share')
+  try { await navigator.clipboard.writeText(text); b.textContent = 'Copied!' } catch { b.textContent = 'Copy failed' }
+  setTimeout(() => { b.textContent = 'Copy share text' }, 1500)
+}
+
+// The walker eases toward the worker's real progress, so the trail arrives as it's found.
+// It moves by elapsed time, and a timer backs up requestAnimationFrame, which browsers
+// pause or throttle in background and occluded windows.
+// Sounds, made with Web Audio: a tick per landmark, a chime when the chest opens.
+const sound = {
+  ctx: null,
+  on: (() => { try { return localStorage.getItem('treasure-sound') !== 'off' } catch { return true } })(),
+  // browsers only allow audio after a click, so this runs from the Dig button
+  wake () {
+    if (!this.on) return
+    try { this.ctx ||= new AudioContext(); this.ctx.resume() } catch { this.ctx = null }
+  },
+  tone (freq, at, dur, { type = 'sine', gain = 0.08 } = {}) {
+    const c = this.ctx
+    if (!c || !this.on) return
+    const t = c.currentTime + at
+    const o = c.createOscillator(); const g = c.createGain()
+    o.type = type; o.frequency.value = freq
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.01)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    o.connect(g).connect(c.destination)
+    o.start(t); o.stop(t + dur + 0.02)
+  },
+  // a soft tick, higher for deeper landmarks
+  tick (depth, at = 0) { this.tone(220 * 2 ** (Math.min(depth, 24) / 12), at, 0.09, { type: 'triangle', gain: 0.05 }) },
+  // rising arpeggio plus coin pings; rarer finds ring longer and brighter
+  chime (tierName) {
+    const n = { fair: 4, fine: 5, rare: 6, legendary: 8 }[tierName] || 4
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5, 1568, 2093, 2637]
+    for (let k = 0; k < n; k++) this.tone(notes[k], k * 0.09, 0.5, { type: 'triangle', gain: 0.07 })
+    for (let k = 0; k < n * 2; k++) this.tone(2400 + Math.random() * 2200, 0.1 + n * 0.09 + k * 0.05, 0.12, { gain: 0.025 })
+  }
+}
+const sndBtn = $('snd')
+const showSnd = () => { sndBtn.textContent = sound.on ? '🔊' : '🔇'; sndBtn.setAttribute('aria-pressed', String(sound.on)); sndBtn.title = sound.on ? 'Sound on' : 'Sound off' }
+sndBtn.onclick = () => {
+  sound.on = !sound.on
+  try { localStorage.setItem('treasure-sound', sound.on ? 'on' : 'off') } catch {}
+  if (sound.on) { sound.wake(); sound.tick(12) }
+  showSnd()
+}
+showSnd()
+
+const dig = $('dig')
+let frame; let timer; let dug = null
+const stopAnim = () => { cancelAnimationFrame(frame); clearTimeout(timer) }
+const busy = b => { for (const id of ['dig', 'random', 'nip07']) $(id).disabled = b; pk.disabled = b }
+
+function hunt (hex) {
+  worker?.terminate(); stopAnim()
+  worker = new Worker('./worker.js', { type: 'module' })
+  busy(true)
+  dug = hex
+  $('result').style.display = 'none'
+  const top = $('map').getBoundingClientRect().top + scrollY - 64
+  if (Math.abs(scrollY - top) > 40) scrollTo({ top, behavior: 'smooth' })
+  say('Digging…')
+  AX = 22
+  const st = { hex, records: [{ i: 1, depth: 0 }], head: 0, target: 0, final: null, ticked: 1 }
+  let last = performance.now()
+  const schedule = () => { frame = requestAnimationFrame(tick); timer = setTimeout(tick, 100) }
+  const tick = () => {
+    stopAnim()
+    const now = performance.now(); const dt = Math.min(1, (now - last) / 1000); last = now
+    // capped so even a fast machine takes ~4 s to cross the map
+    st.head = Math.min(st.target, st.head + dt * Math.min(5, Math.max(3, (st.target - st.head) * 5)))
+    if (st.target > AX) AX = Math.ceil(st.target)
+    if (st.final && st.head >= st.target) {
+      const at = drawMap({ hex, records: st.final.records, head: st.target, spot: st.final })
+      busy(false)
+      const v = st.final.verified
+      say(v ? `Found in ${(st.final.ms / 1000).toFixed(1)} s.` : 'Warning: the result did not verify.', !v)
+      sound.chime(tierOf(st.final.depth).name)
+      showResult(hex, st.final, at)
+      return
+    }
+    drawMap(st)
+    // tick once for each landmark the walker has just reached
+    const reached = st.records.filter(r => Math.log2(r.i) <= st.head + 1e-9)
+    for (let k = st.ticked; k < reached.length; k++) sound.tick(reached[k].depth, (k - st.ticked) * 0.06)
+    st.ticked = Math.max(st.ticked, reached.length)
+    schedule()
+  }
+  worker.onmessage = ({ data: m }) => {
+    if (m.type === 'progress') {
+      st.records = m.records; st.target = Math.log2(m.done)
+      say(`Digging… ${m.done.toLocaleString()} steps`)
+    } else if (m.type === 'error') {
+      stopAnim(); busy(false)
+      drawMap(null)
+      say(m.message, true)
+    } else if (m.type === 'done') {
+      st.records = m.records; st.target = Math.log2(m.i); st.final = m
+    }
+  }
+  worker.postMessage({ pubkey: hex, bits: BITS })
+  schedule()
+}
+
+// The big button digs the key in the card; after a random key's hunt it rolls a new one.
+dig.onclick = () => {
+  sound.wake()
+  let hex
+  try { hex = parseKey(pk.value) } catch (e) { return say(e.message, true) }
+  if (throwaway?.pubkey === hex && dug === hex) { freshKey(); hex = throwaway.pubkey }
+  pk.value = hex
+  hunt(hex)
+}
+
+pk.addEventListener('keydown', e => { if (e.key === 'Enter') dig.click() })
+
+function route () {
+  const view = location.hash === '#how' ? 'how' : 'find'
+  for (const m of document.querySelectorAll('[data-view]')) m.hidden = m.dataset.view !== view
+  for (const a of document.querySelectorAll('[data-tab]')) {
+    if (a.dataset.tab === view) a.setAttribute('aria-current', 'page')
+    else a.removeAttribute('aria-current')
+  }
+  window.scrollTo(0, 0)
+}
+addEventListener('hashchange', route)
+route()
+drawMap(null)
+freshKey()
+showStats(hunts())
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="parch" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#f6e7c4"/><stop offset="70%" stop-color="#ead39f"/><stop offset="100%" stop-color="#c9a76a"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#parch)"/>
+  <rect x="22" y="22" width="1156" height="586" fill="none" stroke="#8a6e4b" stroke-width="3" stroke-dasharray="3 8"/>
+  <text x="600" y="132" text-anchor="middle" font-family="DejaVu Serif, Georgia, serif" font-size="84" font-style="italic" font-weight="700" fill="#4a3520">Treasure Payments</text>
+  <text x="600" y="190" text-anchor="middle" font-family="DejaVu Serif, Georgia, serif" font-size="32" fill="#8a6e4b">Every Nostr key has a treasure: the first point with 20 zeros.</text>
+  <path d="M110,380 C180,380 220,330 300,345 S420,410 520,385 S640,320 700,350 S800,430 880,400 S980,320 1040,330" fill="none" stroke="#4a3520" stroke-width="4" stroke-dasharray="12 12" stroke-linecap="round"/>
+  <circle cx="110" cy="380" r="12" fill="#4a3520"/>
+  <text x="88" y="388" text-anchor="end" font-family="DejaVu Serif, Georgia, serif" font-size="26" font-style="italic" fill="#4a3520">P</text>
+  <g fill="#f6e7c4" stroke="#4a3520" stroke-width="3">
+    <circle cx="300" cy="345" r="8"/><circle cx="520" cy="385" r="8"/><circle cx="700" cy="350" r="8"/><circle cx="880" cy="400" r="8"/>
+  </g>
+  <g font-family="DejaVu Serif, Georgia, serif" font-size="22" fill="#4a3520" text-anchor="middle">
+    <text x="300" y="325">8</text><text x="520" y="365">12</text><text x="700" y="330">16</text><text x="880" y="380">17</text>
+  </g>
+  <g transform="translate(1040,330)" stroke="#b3261e" stroke-width="9" stroke-linecap="round">
+    <line x1="-22" y1="-22" x2="22" y2="22"/><line x1="22" y1="-22" x2="-22" y2="22"/>
+  </g>
+  <text x="1040" y="282" text-anchor="middle" font-family="DejaVu Serif, Georgia, serif" font-size="28" font-weight="700" fill="#b3261e">21 zeros</text>
+  <rect x="150" y="490" width="900" height="64" rx="12" fill="#f6e7c4" stroke="#8a6e4b" stroke-width="2"/>
+  <text x="600" y="532" text-anchor="middle" font-family="DejaVu Sans Mono, Menlo, monospace" font-size="26" fill="#4a3520">tb1p<tspan fill="#b3261e" font-weight="700">qqqq</tspan>da3dguf09l574x06qt4xkz09ax89hs3w…</text>
+</svg>
