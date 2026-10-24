@@ -327,7 +327,6 @@ pk.addEventListener('input', () => { throwaway = null; keyChanged() })
 
 async function balance (addr) {
   const el = $('tbBal')
-  const link = `https://mempool.space/testnet4/address/${addr}`
   el.innerHTML = ''
   el.append('Checking balance… ')
   try {
@@ -340,7 +339,10 @@ async function balance (addr) {
   } catch {
     el.textContent = 'Balance unavailable · '
   }
-  el.append(Object.assign(document.createElement('a'), { href: link, target: '_blank', rel: 'noopener', textContent: 'view on mempool.space' }))
+  for (const host of ['mempool.space', 'mempool.guide']) {
+    if (host !== 'mempool.space') el.append(' · ')
+    el.append(Object.assign(document.createElement('a'), { href: `https://${host}/testnet4/address/${addr}`, target: '_blank', rel: 'noopener', textContent: `view on ${host}` }))
+  }
 }
 
 // Treasure map: a trail from P through each landmark (deepest-so-far point) to the treasure.
