@@ -98,7 +98,12 @@
     box-shadow: 0 4px 0 #7d4310; transition: transform .08s, box-shadow .08s; }
   button.big:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #7d4310; }
   .cta .hint { margin-top: 12px; }
-  .after { margin-top: 12px; }
+  .cta .hint#status:empty { display: none; }
+  /* the dig depth reads as part of the sentence; it only looks like a control on hover */
+  #zeros { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px dotted currentColor; padding: 0 2px; cursor: pointer; appearance: none; -webkit-appearance: none; }
+  #zeros:hover, #zeros:focus-visible { color: var(--accent); }
+  .after { margin-top: 12px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .after[hidden] { display: none; }
   .stats { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
   .stats b { color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
@@ -138,8 +143,10 @@
 
   <section class="panel cta">
     <button id="dig" class="primary big" type="button">Dig for treasure</button>
-    <p class="hint" id="status">Walks until it finds 20+ zeros, about a million steps. Runs in your browser in a few seconds.</p>
+    <p class="hint">Walks until it finds <select id="zeros" aria-label="Zeros to dig for"><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option></select>+ zeros, <span id="effort">about a million steps. Runs in your browser in a few seconds.</span></p>
+    <p class="hint" id="status"></p>
     <div class="after" id="after" hidden>
+      <button id="deeper" class="primary" type="button" hidden></button>
       <button id="share" type="button">Copy share text</button>
     </div>
     <div class="stats" id="stats" hidden></div>
@@ -286,7 +293,9 @@ proof = pubkey,20,i</div>
 <script type="module">
 import { npubDecode, taprootAddress, randomSecret, pubkeyOf, spotSecret } from './spot.js'
 
-const BITS = 20
+// The standard treasure is 20 zeros; the depth picker digs the same walk further.
+const STANDARD = 20
+let BITS = (() => { try { const b = Number(localStorage.getItem('treasure-zeros')); return b >= 20 && b <= 24 ? b : STANDARD } catch { return STANDARD } })()
 const $ = id => document.getElementById(id)
 const pk = $('pk'); const status = $('status')
 let worker
@@ -376,10 +385,10 @@ const oneIn = d => 2 ** (d - BITS)
 // Share of walks that find their treasure within n steps
 const within = n => 1 - Math.exp(-n / 2 ** BITS)
 const pct = p => p < 0.01 ? 'under 1%' : p > 0.99 ? 'over 99%' : `${Math.round(p * 100)}%`
-// Loot-style tiers; min is the depth where each starts
-const TIERS = [{ min: 0, name: 'fair' }, { min: 21, name: 'fine' }, { min: 22, name: 'rare' }, { min: 25, name: 'legendary' }]
-const tierOf = d => TIERS.findLast(t => d >= t.min)
-const nextTier = d => TIERS.find(t => t.min > d)
+// Loot-style tiers, counted from the depth being dug for; min is where each starts
+const tiers = () => [{ min: 0, name: 'fair' }, { min: BITS + 1, name: 'fine' }, { min: BITS + 2, name: 'rare' }, { min: BITS + 5, name: 'legendary' }]
+const tierOf = d => tiers().findLast(t => d >= t.min)
+const nextTier = d => tiers().find(t => t.min > d)
 const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
 
 function layout (hex, records) {
@@ -525,12 +534,13 @@ $('nip07').onclick = async () => {
 }
 
 // Hunt log: public facts only (pubkey, depth, step), kept in this browser.
-const LOG = 'treasure-hunts-20'
-function hunts () { try { return JSON.parse(localStorage.getItem(LOG)) || [] } catch { return [] } }
+// Each dig depth keeps its own log, so a 22-zero hunt never counts as a 20-zero record.
+const LOG = () => `treasure-hunts-${BITS}`
+function hunts () { try { return JSON.parse(localStorage.getItem(LOG())) || [] } catch { return [] } }
 function logHunt (h) {
   const all = hunts()
   if (!all.some(x => x.pubkey === h.pubkey)) all.push(h)
-  try { localStorage.setItem(LOG, JSON.stringify(all.slice(-200))) } catch {}
+  try { localStorage.setItem(LOG(), JSON.stringify(all.slice(-200))) } catch {}
   return all
 }
 
@@ -610,6 +620,11 @@ function showResult (hex, m, at) {
   lastFind = { depth: m.depth, tier: t.name }
   $('after').hidden = false
   dig.textContent = own ? 'Hunt again with a new key' : 'Dig for treasure'
+  // the next treasure on this walk needs one more zero than this one has
+  const more = m.depth + 1
+  $('deeper').hidden = more > 24
+  $('deeper').textContent = `Dig deeper for ${more} zeros`
+  $('deeper').onclick = () => { setDepth(more); sound.wake(); hunt(hex) }
   balance(tb)
 }
 
@@ -669,18 +684,18 @@ showSnd()
 const dig = $('dig')
 let frame; let timer; let dug = null
 const stopAnim = () => { cancelAnimationFrame(frame); clearTimeout(timer) }
-const busy = b => { for (const id of ['dig', 'random', 'nip07']) $(id).disabled = b; pk.disabled = b }
+const busy = b => { for (const id of ['dig', 'random', 'nip07', 'zeros', 'deeper']) $(id).disabled = b; pk.disabled = b }
 
 function hunt (hex) {
   worker?.terminate(); stopAnim()
   worker = new Worker('./worker.js', { type: 'module' })
   busy(true)
-  dug = hex
+  dug = hex + BITS
   $('result').style.display = 'none'
   const top = $('map').getBoundingClientRect().top + scrollY - 64
   if (Math.abs(scrollY - top) > 40) scrollTo({ top, behavior: 'smooth' })
   say('Digging…')
-  AX = 22
+  AX = Math.max(22, BITS + 2)
   const st = { hex, records: [{ i: 1, depth: 0 }], head: 0, target: 0, final: null, ticked: 1 }
   let last = performance.now()
   const schedule = () => { frame = requestAnimationFrame(tick); timer = setTimeout(tick, 100) }
@@ -727,12 +742,30 @@ dig.onclick = () => {
   sound.wake()
   let hex
   try { hex = parseKey(pk.value) } catch (e) { return say(e.message, true) }
-  if (throwaway?.pubkey === hex && dug === hex) { freshKey(); hex = throwaway.pubkey }
+  if (throwaway?.pubkey === hex && dug === hex + BITS) { freshKey(); hex = throwaway.pubkey }
   pk.value = hex
   hunt(hex)
 }
 
 pk.addEventListener('keydown', e => { if (e.key === 'Enter') dig.click() })
+
+// Digging deeper walks the same trail further: about 2^BITS steps.
+const zeros = $('zeros')
+function showDepth () {
+  zeros.value = BITS
+  const m = 2 ** (BITS - 20)
+  $('effort').textContent = `about ${m === 1 ? 'a million' : `${m} million`} steps. ` +
+    `Runs in your browser in ${BITS <= 22 ? 'a few seconds' : BITS === 23 ? 'about ten seconds' : 'about half a minute'}.` +
+    (BITS > STANDARD ? ` The standard treasure is ${STANDARD}; deeper ones say so in their proof.` : '')
+  dig.textContent = 'Dig for treasure'
+  showStats(hunts())
+}
+function setDepth (b) {
+  BITS = b
+  try { localStorage.setItem('treasure-zeros', String(BITS)) } catch {}
+  showDepth()
+}
+zeros.onchange = () => setDepth(Number(zeros.value))
 
 function route () {
   const view = location.hash === '#how' ? 'how' : 'find'
@@ -747,7 +780,7 @@ addEventListener('hashchange', route)
 route()
 drawMap(null)
 freshKey()
-showStats(hunts())
+showDepth()
 </script>
 </body>
 </html>
